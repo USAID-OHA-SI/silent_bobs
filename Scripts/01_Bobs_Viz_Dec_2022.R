@@ -21,6 +21,7 @@
     library(readxl)
     library(gt)
     library(selfdestructin5)
+    library(ggarchery)
     
   # SI specific paths/functions  
     load_secrets()
@@ -66,7 +67,7 @@
 
 # MUNGE ============================================================================
   
-  x_labs <- c("Sept-21", "", "", "", "Jan-22", "", "", "Apr-22", "", "", "Jul-22", "", "", "Oct-22" )
+  x_labs <- c("", "Oct-21", "", "", "Jan-22", "", "", "Apr-22", "", "", "Jul-22", "", "", "Oct-22")
   
   #  Plot TESTing results across time / age
     plot_bobs <- function(df, plot_var, export = T){
@@ -77,28 +78,43 @@
       mutate(maxval = max(values, na.rm = T)) %>% 
       ungroup()  %>% 
       ggplot(aes(x = month_seq, y = values)) +
+      annotate(geom = "rect", xmin = 2, xmax = 13, 
+               ymin = 0, ymax = Inf, alpha = 0.25, fill = grey10k) +
+      geom_area(fill = grey10k, alpha = 0.7) +
+      annotate(geom = "segment", x = 2, xend = 2, 
+               y = 0, yend = Inf, alpha = 0.25, linetype = "dotted") +
+      annotate(geom = "segment", x = 13, xend = 13, 
+               y = 0, yend = Inf, alpha = 0.25, linetype = "dotted") +
+      annotate(geom = "text", x = 7.5, y = 0, label = "<-- FY22 -->",
+               family = "Source Sans Pro", size = 9/.pt, color = grey50k,
+               vjust = -0.25) +
       geom_blank(aes(y = maxval)) +
       geom_blank(aes(y = 0)) +
-      geom_area(fill = grey10k, alpha = 0.7) +
       geom_line() +
+      #geom_point(size = 2, shape = 19, color = grey50k) +
       geom_point(data = . %>% filter(month_seq == min(month_seq)), size = 3, shape = 19) +
       geom_point(data = . %>% filter(month_seq == max(month_seq)), size = 3, shape = 21, fill = "white") +
+      #geom_smooth(linewidth = 0.75, color = grey90k, fill = grey40k) +
+      #geom_point(size = 2, shape = 19, color = scooter_med) +
       facet_wrap(age ~ partner, scales = "free_y",  labeller = label_wrap_gen(multi_line=FALSE)) +
-      scale_y_continuous(labels = label_number_si()) +
+      scale_y_continuous(labels =  label_number(scale_cut = cut_short_scale())) +
       scale_x_continuous(labels = x_labs, breaks = 1:14) +
       si_style_ygrid() +
-      theme(axis.ticks.x = element_line(linewidth = 0.25, color = grey50k)) +
+      theme(axis.text.x = element_text(size = 8),
+        axis.ticks.x = element_line(linewidth = 0.25, color = grey50k), 
+            ) +
       expand_limits(x = c(0.5, 14.5)) +
       labs(x = NULL, y = NULL, 
            title = glue("{plot_var} TRENDS FY FY22"), 
            caption = "Source: FY22 October BOBs extract from E4H")
+  
       
-      if(export == TRUE){
-        si_save(glue("Images/{plot_var}_Bobs_summary_Oct_2022.png"))
-      }
+       if(export == TRUE){
+         si_save(glue("Images/{plot_var}_Bobs_summary_Oct_2022_V2.png"))
+       }
   
     }
-
+plot_bobs(bob_oct, "HTS_TST_POS")
   
   
 # VIZ ============================================================================

@@ -16,6 +16,11 @@ url <- paste0(bobs_home,"api/me")
 login <- GET(url, authenticate("", ""))
 
 
+# Sample urls that work for NGA dhis instance linking to pivot table -- exporting as a json
+#https://hatappr.org/api/visualizations/ykeieflSzr8/data?format=json
+#https://docs.dhis2.org/en/develop/using-the-api/dhis-core-version-239/visualizations.html
+
+
 # Tip sheet
 # https://integratehealth.org/wp-content/uploads/2020/09/API-Usage-Tip-Sheet.pdf
 

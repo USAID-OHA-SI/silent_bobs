@@ -79,11 +79,14 @@
       clean_indicator() %>% 
       filter(standardizeddisaggregate %in% 
                c(disag_tst, disag_pmtct, disag_tx, disag_prev, "Total Numer")) %>% 
-      group_by(indicator, ageasentered, sex, mech_name, mech_code) %>% 
+      group_by(indicator, ageasentered, sex, mech_name, mech_code, standardizeddisaggregate) %>% 
       summarise(across(matches("qtr"), sum, na.rm = T), .groups = "drop") %>% 
-      group_by(sex, mech_name, mech_code, indicator) %>% 
+      group_by(sex, mech_name, mech_code, indicator, standardizeddisaggregate) %>% 
       mutate(across(matches("qtr"), ~ .x / sum(.x), na.rm = T, .names = "{.col}_share")) %>% 
-      mutate(across(c(qtr1:qtr4), sum, na.rm = T, .names = "{.col}_total"))
+      mutate(across(c(qtr1:qtr4), sum, na.rm = T, .names = "{.col}_total")) %>% 
+      ungroup() %>% 
+      mutate(age_sex = str_c(ageasentered, sex, sep = ", ")) %>% 
+    write_csv("Dataout/ZMB_82075_Action_sample_MER_proportions.csv")
   
 # VIZ ============================================================================
 

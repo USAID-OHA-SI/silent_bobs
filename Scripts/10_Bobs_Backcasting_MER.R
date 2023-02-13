@@ -24,7 +24,7 @@
     load_secrets()
     merdata <- file.path(glamr::si_path("path_msd"))
     file_path <- return_latest(folderpath = merdata,
-      pattern = "Site_IM_.*Zambia")
+      pattern = "Genie-PSNUByIMs-Zambia-Daily-2023-02-02")
       
   # Grab metadata
    get_metadata(file_path)
@@ -35,38 +35,55 @@
   # Indicator groups
   
   # QUESTION: HTS_RECENT (N OR D?) 
-  tst <- c("HTS_TST", "HTS_TST_POS", "HTS_SELF", "HTS_RECENT", "HTS_INDEX_POS")
+  tst <- c("HTS_TST", "HTS_TST_POS", "HTS_SELF", "HTS_RECENT", "HTS_INDEX_NEWPOS", "HTS_INDEX")
+  disag_tst <- c("Age/Sex/Result", "Age/Sex/HIVIndication", 
+                 "Age/Sex/HIVSelfTest", "Modality/Age/Sex/Result",
+                 "4:Age/Sex/Result", "Age/Sex/HIVSelfTest", "Modality/Age/Sex/RTRI/HIVStatus")
+  
   
   
   # QUESTION: PMTCT_STAT (N OR D?) 
   pmtct <- c("PMTCT_STAT", "PMTCT_STAT_POS", "PMTCT_EID", "PMTCT_HEI_POS")
+  disag_pmtct <- c("Age/Sex/KnownNewResult", "Age/Sex", "Age/NewExistingArt/Sex/HIVStatus", "Age/HIVStatus")
+  
   
   # Question
-  tx <- c("TX_NEW", "TX_CURR", "TX_ML", "TX_IIT", "TX_PVLS_D", "TX_PVLS_N", "PMTCT_ART")
+  tx <- c("TX_NEW", "TX_CURR", "TX_ML", "TX_PVLS", "PMTCT_ART", "TX_RTT")
+  disag_tx <- c("Age/Sex/HIVStatus", "Age/Sex/ARTNoContactReason/HIVStatus", "Age/Sex/Indication/HIVStatus")
   
-  
-  prev <- c("PrEP_NEW", "TB_PREV_D", "TB_PREV_N", "CXCA_SCRN", "OVC_SERV")
+  prev <- c("PrEP_NEW", "TB_PREV", "TB_PREV", "CXCA_SCRN", "OVC_SERV")
+  disag_prev <- c("Age/Sex", "Age/Sex/NewExistingArt/HIVStatus", 
+                  "Age/Sex/HIVStatus/ScreenResult/ScreenVisitType", "Age/Sex/ProgramStatus")
 
 # LOAD DATA ============================================================================  
 
-  df_msd <- read_msd(file_path) %>% filter(fiscal_year == 2022, funding_agency == "USAID")
+  df_msd <- read_msd(file_path) %>% 
+    filter(fiscal_year == 2022, funding_agency == "USAID") 
   
-  disag_tst <- c("Age/Sex/Result", "Age/Sex/HIVIndication", "Age/Sex/HIVSelfTest", "Modality/Age/Sex/Result")
-  
-  disag_pmtct <- c("Age/Sex/KnownNewResult", "Age/Sex")
-  
-  disag_tx <- c("Age/Sex/HIVStatus", "Age/Sex/ARTNoContactReason/HIVStatus", "Age/Sex/Indication/HIVStatus")
-  
-  df_tst <- df_msd %>% filter(indicator %in% tst, standardizeddisaggregate %in% disag_tst) 
-  
-
-  df_tx <- df_msd %>% filter(indicator %in% tx, standardizeddisaggregate %in% disag_tx)
-  
+  df_msd %>% filter(indicator %in% c(tst, pmtct, tx, prev)) %>% 
+    clean_indicator() %>% 
+    filter(standardizeddisaggregate %in% 
+                      c(disag_tst, disag_pmtct, disag_tx, disag_prev, "Total Numer")) %>% 
+    count(indicator, ageasentered, sex) %>% 
+    spread(ageasentered, n) %>% prinf()
+    write_csv("Dataout/bobs_retrofitting_indicators.csv", na = "")
   
 
 # MUNGE ============================================================================
   
-  #  
+  # Pull ACTION HIVs #s to start
+    df_action <- 
+      df_msd %>% 
+      filter(indicator %in% c(tst, pmtct, tx, prev),
+             mech_code == 82075) %>% 
+      clean_indicator() %>% 
+      filter(standardizeddisaggregate %in% 
+               c(disag_tst, disag_pmtct, disag_tx, disag_prev, "Total Numer")) %>% 
+      group_by(indicator, ageasentered, sex, mech_name, mech_code) %>% 
+      summarise(across(matches("qtr"), sum, na.rm = T), .groups = "drop") %>% 
+      group_by(sex, mech_name, mech_code, indicator) %>% 
+      mutate(across(matches("qtr"), ~ .x / sum(.x), na.rm = T, .names = "{.col}_share")) %>% 
+      mutate(across(c(qtr1:qtr4), sum, na.rm = T, .names = "{.col}_total"))
   
 # VIZ ============================================================================
 
